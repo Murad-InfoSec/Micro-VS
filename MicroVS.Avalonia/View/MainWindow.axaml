@@ -79,6 +79,8 @@
             <MenuItem x:Name="PasteMenuItem" Header="Paste" Click="Paste_Click">
               <MenuItem.Icon><Image Source="/Assets/Paste.png" /></MenuItem.Icon>
             </MenuItem>
+            <Separator />
+            <MenuItem x:Name="CompleteWordMenuItem" Header="Complete Word" Click="CompleteWord_Click" />
           </MenuItem>
           <MenuItem Header="_View">
             <MenuItem x:Name="ProjectTreeCollapsedMenuItem" Header="Project Tree Collapsed"

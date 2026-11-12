@@ -11,8 +11,11 @@ using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using AvaloniaEdit;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Editing;
 using AvaloniaEdit.Highlighting;
 using Micro_VS.ArgumentArgs_es;
+using Micro_VS.Completion;
 using Micro_VS.Model.ProjectInfo_micro_sln_;
 using MFile = Micro_VS.Model.ProjectInfo_micro_sln_.File;
 
@@ -41,8 +44,13 @@ namespace Micro_VS.View
             SetShortcut(PasteMenuItem, new KeyGesture(Key.V, CommandKey), hotKey: false);
             SetShortcut(BuildMenuItem, new KeyGesture(Key.B, CommandKey | KeyModifiers.Shift));
             SetShortcut(RunMenuItem, new KeyGesture(Key.F5));
+            SetShortcut(CompleteWordMenuItem, new KeyGesture(Key.Space, KeyModifiers.Control), hotKey: false); // handled by the editor
 
-            EditorTabs.SelectionChanged += (s, e) => UpdateEmptyHint();
+            EditorTabs.SelectionChanged += (s, e) =>
+            {
+                completionWindow?.Close();
+                UpdateEmptyHint();
+            };
             UpdateEmptyHint();
         }
 
@@ -55,6 +63,8 @@ namespace Micro_VS.View
         public event EventHandler Build;
         public event EventHandler Run;
         #endregion
+
+        public ICodeCompletion CodeCompletion { get; set; }
 
         #region IView Interface Methods
         public void InitializeFile(FileArgs args)
@@ -80,13 +90,15 @@ namespace Micro_VS.View
             editor.Options.HighlightCurrentLine = true;
 
             var title = new TextBlock { Text = name };
+            var info = new EditorTabInfo(name, editor, title);
             var tab = new TabItem
             {
                 Header = title,
-                Tag = new EditorTabInfo(name, editor, title),
+                Tag = info,
                 Content = editor
             };
             editor.TextChanged += (s, e) => SetDirty(tab, true);
+            AttachCompletion(info);
 
             EditorTabs.Items.Add(tab);
             EditorTabs.SelectedItem = tab;
@@ -228,6 +240,15 @@ namespace Micro_VS.View
 
         private void Exit_Click(object sender, RoutedEventArgs e) => Close();
 
+        private void CompleteWord_Click(object sender, RoutedEventArgs e)
+        {
+            if ((EditorTabs.SelectedItem as TabItem)?.Tag is EditorTabInfo info)
+            {
+                info.Editor.TextArea.Focus();
+                RequestCompletion(info, null);
+            }
+        }
+
         private void Cut_Click(object sender, RoutedEventArgs e) => CurrentEditor()?.Cut();
         private void Copy_Click(object sender, RoutedEventArgs e) => CurrentEditor()?.Copy();
         private void Paste_Click(object sender, RoutedEventArgs e) => CurrentEditor()?.Paste();
@@ -275,6 +296,139 @@ namespace Micro_VS.View
             editor.ScrollTo(line, Math.Max(1, message.Column));
             Dispatcher.UIThread.Post(() => editor.TextArea.Focus());
         }
+        #endregion
+
+        #region Code completion
+        // Characters that accept the selected item and are then typed as usual. Space is deliberately
+        // not one of them, so typing a new name never gets replaced by a suggestion.
+        private static readonly HashSet<char> CommitCharacters = new HashSet<char>(".,;:()[]{}<>=+-*/%&|^!?~");
+
+        private CompletionWindow completionWindow;
+        private bool completionIsSuggestionMode;
+        private int completionRequestId;
+
+        private void AttachCompletion(EditorTabInfo info)
+        {
+            TextArea area = info.Editor.TextArea;
+            area.TextEntering += (s, e) => OnTextEntering(e);
+            area.TextEntered += (s, e) => OnTextEntered(info, e);
+
+            // Ctrl+Space (Visual Studio) or Cmd/Ctrl+J ("List Members") opens the list on demand.
+            area.AddHandler(KeyDownEvent, (s, e) =>
+            {
+                bool ctrlSpace = e.Key == Key.Space && e.KeyModifiers == KeyModifiers.Control;
+                bool listMembers = e.Key == Key.J && e.KeyModifiers == CommandKey;
+                if (ctrlSpace || listMembers)
+                {
+                    e.Handled = true;
+                    RequestCompletion(info, null);
+                }
+            }, RoutingStrategies.Tunnel);
+        }
+
+        private void OnTextEntering(TextInputEventArgs e)
+        {
+            if (completionWindow == null || string.IsNullOrEmpty(e.Text))
+                return;
+
+            char c = e.Text[0];
+            if (IsIdentifierChar(c))
+                return; // keeps narrowing the list
+
+            if (!completionIsSuggestionMode && CommitCharacters.Contains(c) && completionWindow.CompletionList.SelectedItem != null)
+                completionWindow.CompletionList.RequestInsertion(e); // inserts the item; the character is typed after it
+            else
+                completionWindow.Close();
+        }
+
+        private void OnTextEntered(EditorTabInfo info, TextInputEventArgs e)
+        {
+            if (completionWindow != null || CodeCompletion == null || e.Text == null || e.Text.Length != 1)
+                return;
+
+            // Open on "." and when a new word starts (not in the middle of one).
+            char c = e.Text[0];
+            int caret = info.Editor.CaretOffset;
+            char before = caret >= 2 ? info.Editor.Document.GetCharAt(caret - 2) : ' ';
+            if (c == '.' || (IsIdentifierStart(c) && !IsIdentifierChar(before)))
+                RequestCompletion(info, c);
+        }
+
+        private async void RequestCompletion(EditorTabInfo info, char? trigger)
+        {
+            ICodeCompletion service = CodeCompletion;
+            if (service == null)
+                return;
+
+            completionWindow?.Close();
+            TextEditor editor = info.Editor;
+            int requestId = ++completionRequestId;
+            var request = new CompletionRequest(info.FileName, editor.Text, editor.CaretOffset, OpenBuffers(), trigger);
+
+            CompletionResult result;
+            try
+            {
+                result = await Task.Run(() => service.GetCompletionsAsync(request));
+            }
+            catch (Exception)
+            {
+                return;
+            }
+
+            // Superseded, nothing to show, or the user switched files meanwhile.
+            if (requestId != completionRequestId || completionWindow != null || result.Items.Count == 0 || CurrentEditor() != editor)
+                return;
+            // Where the user is typing a new name, only show suggestions when asked for explicitly.
+            if (result.IsSuggestionMode && trigger != null)
+                return;
+
+            // The user may have kept typing while Roslyn worked: the list filters by what is typed so far.
+            int caret = editor.CaretOffset;
+            if (result.SpanStart > caret || result.SpanStart > editor.Document.TextLength)
+                return;
+            string typed = editor.Document.GetText(result.SpanStart, caret - result.SpanStart);
+            if (!typed.All(IsIdentifierChar))
+                return;
+
+            var window = new CompletionWindow(editor.TextArea)
+            {
+                StartOffset = result.SpanStart,
+                EndOffset = caret,
+                CloseWhenCaretAtBeginning = typed.Length > 0,
+                MinWidth = 280
+            };
+            ICompletionData preselected = null;
+            foreach (CompletionEntry entry in result.Items)
+            {
+                var data = new CompletionData(entry, service);
+                window.CompletionList.CompletionData.Add(data);
+                if (entry.IsPreselected && preselected == null)
+                    preselected = data;
+            }
+
+            completionIsSuggestionMode = result.IsSuggestionMode;
+            window.Closed += (s, e) =>
+            {
+                if (completionWindow == window)
+                    completionWindow = null;
+            };
+            completionWindow = window;
+            window.Show();
+
+            if (typed.Length > 0)
+                window.CompletionList.SelectItem(typed);
+            else if (preselected != null)
+                window.CompletionList.SelectedItem = preselected;
+        }
+
+        private Dictionary<string, string> OpenBuffers() =>
+            EditorTabs.Items.OfType<TabItem>()
+                      .Select(t => t.Tag as EditorTabInfo)
+                      .Where(i => i != null)
+                      .ToDictionary(i => i.FileName, i => i.Editor.Text);
+
+        private static bool IsIdentifierStart(char c) => char.IsLetter(c) || c == '_';
+        private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_';
         #endregion
 
         #region MyPrivateMethods

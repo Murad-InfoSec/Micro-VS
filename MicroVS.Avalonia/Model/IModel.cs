@@ -1,4 +1,5 @@
 using Micro_VS.ArgumentArgs_es;
+using Micro_VS.Completion;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,8 @@ namespace Micro_VS.Model
         void OpenFile(FileArgs args);
         void SaveFile(FileArgs args);
         void CreateFile(FileArgs args);
+        ICodeCompletion CodeCompletion { get; }
+
         void Build();
         void Run();
     }

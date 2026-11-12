@@ -24,6 +24,7 @@ dotnet run
 - **File > Create Project** makes a folder with a `<name>.micro_sln` project file and a Hello World `Program.cs`.
 - **Run** (F5) saves all files, compiles the project to `bin/<name>.dll`, and runs it in a new terminal window.
 - **Build** (Shift+Cmd/Ctrl+B) compiles without running. Errors and warnings appear in the bottom panel; double-click one to jump to it.
+- **Code completion** (IntelliSense-style, powered by Roslyn's `CompletionService`) opens as you type a word or `.`, or on demand with Ctrl+Space (or Cmd/Ctrl+J, or **Edit > Complete Word**). It knows the whole .NET base class library and your project's own types, including unsaved edits in open tabs, shows signatures and XML doc comments, and adds missing `using` lines. Tab, Enter or punctuation accepts; Space never does, so new names are not overwritten.
 
 ## Run the original version
 

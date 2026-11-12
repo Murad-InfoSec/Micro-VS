@@ -21,6 +21,7 @@ namespace Micro_VS.Presenter
             view.SaveFile += View_SaveFile;
             view.Build += View_Build;
             view.Run += View_Run;
+            view.CodeCompletion = model.CodeCompletion;
 
             model.ProjectCreatedOrOpened += Model_ProjectCreatedOrOpened;
             model.FileOpenedOrCreated += Model_FileOpenedOrCreated;

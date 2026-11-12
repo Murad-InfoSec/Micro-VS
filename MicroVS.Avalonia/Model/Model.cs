@@ -1,10 +1,12 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Xml.Serialization;
 using Micro_VS.ArgumentArgs_es;
+using Micro_VS.Completion;
 using Micro_VS.Model.ProjectInfo_micro_sln_;
+using Project = Micro_VS.Model.ProjectInfo_micro_sln_.Project; // not Microsoft.CodeAnalysis.Project
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
@@ -29,7 +31,17 @@ namespace {0}
 }}
 ";
 
+        private readonly CodeCompletion completion;
+
+        public Model()
+        {
+            completion = new CodeCompletion(() => CurrentProject);
+        }
+
         public Project CurrentProject { get; set; }
+
+        /// <summary>Roslyn code completion for the current project.</summary>
+        public ICodeCompletion CodeCompletion => completion;
 
         /// <summary>When false, Run() only builds. Used by tests so no terminal window opens.</summary>
         public bool LaunchProgramAfterBuild { get; set; } = true;
@@ -61,6 +73,7 @@ namespace {0}
 
             //Notice the Presenter the project is Created .
             ProjectCreatedOrOpened?.Invoke(this, new InitializeProjectTreeArgs(CurrentProject.Name, CurrentProject.ProjectFolder));
+            completion.WarmUp();
         }
 
         public void OpenProject(ProjectArgs args)
@@ -72,6 +85,7 @@ namespace {0}
             }
 
             ProjectCreatedOrOpened?.Invoke(this, new InitializeProjectTreeArgs(CurrentProject.Name, CurrentProject.ProjectFolder));
+            completion.WarmUp();
         }
 
         private void SaveProjectSln()
@@ -133,7 +147,7 @@ namespace {0}
 
         // Every assembly of the running .NET shared framework (System.*, Microsoft.*, netstandard ...),
         // so compiled programs can use the whole base class library.
-        private static readonly Lazy<List<MetadataReference>> FrameworkReferences = new Lazy<List<MetadataReference>>(() =>
+        internal static readonly Lazy<List<MetadataReference>> FrameworkReferences = new Lazy<List<MetadataReference>>(() =>
         {
             string frameworkDir = Path.GetDirectoryName(typeof(object).Assembly.Location);
             var references = new List<MetadataReference>();
