@@ -1,0 +1,15 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# NuGet packages for the .NET Framework project (restored from packages.config)
+packages/
+
+# OS / editor
+.DS_Store
+.idea/

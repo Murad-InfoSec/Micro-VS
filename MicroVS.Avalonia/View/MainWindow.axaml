@@ -1,0 +1,155 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Micro_VS.View.MainWindow"
+        Title="Micro VS"
+        Width="1100" Height="680" MinWidth="640" MinHeight="420"
+        WindowStartupLocation="CenterScreen"
+        Icon="/Assets/IconSolution.png">
+
+  <Window.Styles>
+    <Style Selector="Button.tool">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="5" />
+      <Setter Property="Margin" Value="1,0" />
+    </Style>
+    <Style Selector="Button.tool Image, MenuItem Image">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
+    </Style>
+    <Style Selector="Border.separator">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Margin" Value="4,3" />
+      <Setter Property="Background" Value="#CCCCCC" />
+    </Style>
+    <Style Selector="TabControl > TabItem">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="Padding" Value="10,4" />
+    </Style>
+    <Style Selector="TabControl > TabItem TextBlock">
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector="TextBlock.paneHeader">
+      <Setter Property="Margin" Value="8,6" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </Window.Styles>
+
+  <!-- Rows: [editor + project tree] / splitter / [Errors, Warnings, Output] -->
+  <Grid x:Name="RootGrid" RowDefinitions="*,Auto,220">
+
+    <!-- Columns: [menu, toolbar, editor tabs] / splitter / [project tree] -->
+    <Grid x:Name="TopGrid" Grid.Row="0" ColumnDefinitions="*,Auto,250">
+
+      <DockPanel Grid.Column="0">
+        <Menu DockPanel.Dock="Top">
+          <MenuItem Header="_File">
+            <MenuItem Header="Create Project..." Click="CreateProject_Click">
+              <MenuItem.Icon><Image Source="/Assets/New_Project.jpg" /></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Open Project..." Click="OpenProject_Click">
+              <MenuItem.Icon><Image Source="/Assets/OpenFileFromProject_16x.png" /></MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="New File..." Click="NewFile_Click">
+              <MenuItem.Icon><Image Source="/Assets/New_File.jpg" /></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Open File..." Click="OpenFile_Click">
+              <MenuItem.Icon><Image Source="/Assets/Open_File.jpg" /></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem x:Name="SaveMenuItem" Header="Save Focused File" Click="Save_Click">
+              <MenuItem.Icon><Image Source="/Assets/Save_16x.png" /></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem x:Name="SaveAllMenuItem" Header="Save All Files" Click="SaveAll_Click">
+              <MenuItem.Icon><Image Source="/Assets/save_all.jpg" /></MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="Exit" Click="Exit_Click">
+              <MenuItem.Icon><Image Source="/Assets/CloseSolution_inverse_16x.png" /></MenuItem.Icon>
+            </MenuItem>
+          </MenuItem>
+          <MenuItem Header="_Edit">
+            <MenuItem x:Name="CutMenuItem" Header="Cut" Click="Cut_Click">
+              <MenuItem.Icon><Image Source="/Assets/Cut.png" /></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem x:Name="CopyMenuItem" Header="Copy" Click="Copy_Click">
+              <MenuItem.Icon><Image Source="/Assets/Copy.png" /></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem x:Name="PasteMenuItem" Header="Paste" Click="Paste_Click">
+              <MenuItem.Icon><Image Source="/Assets/Paste.png" /></MenuItem.Icon>
+            </MenuItem>
+          </MenuItem>
+          <MenuItem Header="_View">
+            <MenuItem x:Name="ProjectTreeCollapsedMenuItem" Header="Project Tree Collapsed"
+                      ToggleType="CheckBox" Click="ProjectTreeCollapsed_Click" />
+            <MenuItem x:Name="ErrorsBlockCollapsedMenuItem" Header="Errors Block Collapsed"
+                      ToggleType="CheckBox" Click="ErrorsBlockCollapsed_Click" />
+          </MenuItem>
+          <MenuItem Header="_Project">
+            <MenuItem Header="Add New File..." Click="NewFile_Click" />
+            <MenuItem Header="Add Existing File..." Click="OpenFile_Click" />
+            <Separator />
+            <MenuItem x:Name="BuildMenuItem" Header="Build" Click="Build_Click">
+              <MenuItem.Icon><Image Source="/Assets/Visual_Studio_Icon_Library.jpg" /></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem x:Name="RunMenuItem" Header="Run" Click="Run_Click">
+              <MenuItem.Icon><Image Source="/Assets/Run.png" /></MenuItem.Icon>
+            </MenuItem>
+          </MenuItem>
+        </Menu>
+
+        <Border DockPanel.Dock="Top" BorderBrush="#DDDDDD" BorderThickness="0,0,0,1" Padding="2">
+          <StackPanel Orientation="Horizontal">
+            <Button Classes="tool" ToolTip.Tip="New Project" Click="CreateProject_Click"><Image Source="/Assets/New_Project.jpg" /></Button>
+            <Button Classes="tool" ToolTip.Tip="Open Project" Click="OpenProject_Click"><Image Source="/Assets/OpenFileFromProject_16x.png" /></Button>
+            <Border Classes="separator" />
+            <Button Classes="tool" ToolTip.Tip="New File" Click="NewFile_Click"><Image Source="/Assets/New_File.jpg" /></Button>
+            <Button Classes="tool" ToolTip.Tip="Open File" Click="OpenFile_Click"><Image Source="/Assets/Open_File.jpg" /></Button>
+            <Button Classes="tool" ToolTip.Tip="Save Focused File" Click="Save_Click"><Image Source="/Assets/Save_16x.png" /></Button>
+            <Button Classes="tool" ToolTip.Tip="Save All Files" Click="SaveAll_Click"><Image Source="/Assets/save_all.jpg" /></Button>
+            <Border Classes="separator" />
+            <Button Classes="tool" ToolTip.Tip="Cut" Click="Cut_Click"><Image Source="/Assets/Cut.png" /></Button>
+            <Button Classes="tool" ToolTip.Tip="Copy" Click="Copy_Click"><Image Source="/Assets/Copy.png" /></Button>
+            <Button Classes="tool" ToolTip.Tip="Paste" Click="Paste_Click"><Image Source="/Assets/Paste.png" /></Button>
+            <Border Classes="separator" />
+            <Button Classes="tool" ToolTip.Tip="Build" Click="Build_Click"><Image Source="/Assets/Visual_Studio_Icon_Library.jpg" /></Button>
+            <Button Classes="tool" ToolTip.Tip="Run" Click="Run_Click"><Image Source="/Assets/Run.png" /></Button>
+          </StackPanel>
+        </Border>
+
+        <Panel>
+          <TabControl x:Name="EditorTabs" Padding="0" />
+          <TextBlock x:Name="EmptyHint" HorizontalAlignment="Center" VerticalAlignment="Center"
+                     Foreground="Gray" TextAlignment="Center"
+                     Text="Create or open a project from the File menu." />
+        </Panel>
+      </DockPanel>
+
+      <GridSplitter x:Name="TreeSplitter" Grid.Column="1" Width="4" ResizeDirection="Columns" Background="#E5E5E5" />
+
+      <DockPanel x:Name="TreePane" Grid.Column="2">
+        <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="Solution Explorer" />
+        <TreeView x:Name="ProjectTree" />
+      </DockPanel>
+    </Grid>
+
+    <GridSplitter x:Name="BottomSplitter" Grid.Row="1" Height="4" ResizeDirection="Rows" Background="#E5E5E5" />
+
+    <TabControl x:Name="BottomTabs" Grid.Row="2" Padding="0">
+      <TabItem x:Name="ErrorsTab" Header="Errors">
+        <DataGrid x:Name="ErrorsGrid" AutoGenerateColumns="True" IsReadOnly="True"
+                  GridLinesVisibility="Horizontal" DoubleTapped="MessagesGrid_DoubleTapped" />
+      </TabItem>
+      <TabItem x:Name="WarningsTab" Header="Warnings">
+        <DataGrid x:Name="WarningsGrid" AutoGenerateColumns="True" IsReadOnly="True"
+                  GridLinesVisibility="Horizontal" DoubleTapped="MessagesGrid_DoubleTapped" />
+      </TabItem>
+      <TabItem x:Name="OutputTab" Header="Output">
+        <TextBox x:Name="OutputBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                 FontFamily="Menlo, Consolas, Courier New, monospace" FontSize="12"
+                 BorderThickness="0" />
+      </TabItem>
+    </TabControl>
+  </Grid>
+</Window>
